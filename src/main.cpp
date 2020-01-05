@@ -41,7 +41,7 @@ const double xyz[18] =
  -d * sin(3.1415926 / 3),-d * cos(3.1415926 / 3),   -h,
  0,                      -d,                        -h,
  d * sin(3.1415926 / 3), -d * cos(3.1415926 / 3),   -h,
- d * sin(3.1415926 / 3),  d * cos(3.1415926 / 3),-h
+ d * sin(3.1415926 / 3),  d * cos(3.1415926 / 3),   -h
 };
 
 double input[18];
@@ -183,251 +183,315 @@ void Prepair()
 	MCF_Uniaxial_dDist_Change_Net(Axis_12, input_c[17], Position_Absolute, 0);
 }
 
+int command = 0, state = 0;
+enum  //状态常量
+{
+	INIT = 0,     //初始
+	HOMED = 1,    //回原点
+	PREPAIRD= 2,  //准备
+	RUNNING = 3,  //运行
+	ERRO= 4,      //错误
+};
 
-auto execute(std::string& cmd)->int
+enum  //命令常量
+{
+	HOME = 0,      //回原点
+	PREPAIR = 1,   //准备
+	FORWARD = 2,   //前进
+	BACK = 3,      //后退
+	LEFT = 4,      //左移
+	RIGHT = 5      //右移
+};
+int table_state[5][6] =       //状态表
+{
+   //home    prepair  forward    back      lest     right
+	{ HOMED,      -1,      -1,      -1,      -1,      -1},		//init
+	{ HOMED, PREPAIR,      -1,      -1,      -1,      -1},		//home
+	{ HOMED, PREPAIR, RUNNING, RUNNING, RUNNING, RUNNING},		//prepair
+	{    -1,      -1, RUNNING, RUNNING, RUNNING, RUNNING},		//running
+	{  ERRO,    ERRO,    ERRO,    ERRO,    ERRO,    ERRO}		//error
+};
+
+auto execute(int command,int state)->std::tuple<int, std::string>
 {
 	static unsigned short Home_State = 0;
+	if (state == -1)
+	{
+		return std::make_tuple<int, std::string>(-1, "fail");
+	}
+	else
+	{
+		switch (command)
+		{
+			case HOME:
+			{
+				if (state == HOMED || state == PREPAIRD)
+				{
+			//		unsigned short Runcount[AxisMax] = { 1 };
+			//		unsigned short Reason[AxisMax] = { 1 };
+			//		unsigned short Reason1[AxisMax] = { 0 };
+
+			//		for (int i = 0; i < AxisMax; i++)			//设置18轴触发
+			//		{
+			//			MCF_Get_Home_Net(i, &Home_State, 0);
+			//			if (Home_State == 1)
+			//			{
+			//				MCF_Set_Home_Trigger_Net(i, Trigger_Low_IMD, 0);
+			//				MCF_JOG_Net(i, 10000, 10000000, 0);//往正找原点
+			//				Runcount[i] = 1;
+			//			}
+			//		}
+			//		bool Home_Number = true;
+			//		while (Home_Number)
+			//		{
+			//			for (int i = 0; i < AxisMax; i++)
+			//			{
+			//				if (Runcount[i] == 1)
+			//				{
+			//					MCF_Get_Axis_State_Net(i, &Reason[i], 0);
+			//					if (Reason[i] == IMD_STOP_AT_Home)
+			//					{
+
+			//						MCF_Clear_Axis_State_Net(i, 0);
+
+			//						MCF_Set_Home_Trigger_Net(i, Trigger_Close, 0);
+			//						MCF_Set_Axis_Profile_Net(i, 0, 20000, 1000000, 10000000, 0, Profile_S, 0);
+			//						if (i < Axis_13)
+			//						{
+			//							MCF_Uniaxial_Net(i, -10000, Position_Opposite, 0);//机械臂往外升出10000,脉冲	
+			////						    MCF_Uniaxial_Net(i, -5000, Position_Opposite, 0);//机械臂往外升出10000,脉冲	
+			//						}
+			//						else
+			//						{
+			//							MCF_Uniaxial_Net(i, -50000, Position_Opposite, 0);//机械臂往外升出10000,脉冲	
+			////						    MCF_Uniaxial_Net(i, -25000, Position_Opposite, 0);//机械臂往外升出10000,脉冲
+			//						}
+
+			//						Runcount[i] = 0;
+			//					}
+			//					else if (Reason[i] == ERR_Axis_Busy)
+			//					{
+			//					}
+			//					else
+			//					{
+
+			//					}
+			//				}
+			//				else if (Runcount[i] == 0)
+			//				{
+			//					MCF_Get_Axis_State_Net(i, &Reason1[i], 0);
+			//					if (Reason1[i] == 0)
+			//					{
+			//						Runcount[i] = 2;
+			//					}
+			//					else
+			//					{
+			//						Runcount[i] = 0;
+			//					}
+			//				}
+
+			//				if (std::all_of(Runcount, Runcount + 18, [](auto v) {return v == 2; }))
+			//				{
+			//					for (i = 0; i < AxisMax; i++)
+			//					{
+			//						MCF_Set_Position_Net(i, 0, 0);				//设置当前位置为0
+			//						MCF_Set_Encoder_Net(i, 0, 0);			//设置当前编码器为0 
+			//																	//清零
+			//					}
+
+			//					Home_Number = false;
+			//				}
+			//			}
+			//		}
+
+					std::cout << "home finished" << std::endl;
+					std::this_thread::sleep_for(std::chrono::seconds(1));
+				}
+				break;
+			}
+			case PREPAIR:
+			{
+				if (state == HOMED || state == PREPAIRD)
+				{
+					//Prepair();
+					std::cout << "prepair finish" << std::endl;
+					break;
+				}
+			}
+			case FORWARD:
+			{
+				std::cout << "forward finish" << std::endl;
+				if (state == PREPAIRD || state == RUNNING)
+				{
+					//Prepair();
+
+					//auto n = 5;
+
+					//param.d = 400; //步距 MM
+					//param.h = 90;  //腿高度 MM
+					//param.alpha = 3.1415926 / 3; //方向
+					//param.beta = 0.0;
+					////	 param.total_count = 2000;  //1ms
+					//param.total_count = 50;   //10ms
+					//param.n = n;
+					//param.begin_pee_wrt_ground = xyz;
+					//param.begin_pm_wrt_ground = body;
+					//param.mot_pos = input;
+
+					//for (int j = 0; j < 18; j++)
+					//{
+					//	MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
+					//}
+
+					//std::chrono::high_resolution_clock c;
+					//auto begin_time = c.now();
+					//for (int i = 0; ret; ++i)
+					//{
+					//	std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
+					//	ret = walk_plan(i, &param);
+					//	// 弧度 中间为 0    input[0]                        0.2弧度
+					//	// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
+					//	// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
+
+					//	sendToBoard(input);
+					//}
+					std::cout << "forward finish" << std::endl;
+				}
+				break;
+			}
+			case BACK:
+			{
+				if (state == PREPAIRD || state == RUNNING)
+				{
+					//Prepair();
+
+					//param.d = -400; //步距 MM
+					//param.h = 90;  //腿高度 MM
+					//param.alpha = 3.1415926 / 3; //方向
+					//param.beta = 0.0;
+					////	 param.total_count = 2000;  //1ms
+					//param.total_count = 100;   //10ms
+					//param.n = 5;
+					//param.begin_pee_wrt_ground = xyz;
+					//param.begin_pm_wrt_ground = body;
+					//param.mot_pos = input;
+
+					//for (int j = 0; j < 18; j++)
+					//{
+					//	MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
+					//}
+
+					//std::chrono::high_resolution_clock c;
+					//auto begin_time = c.now();
+					//for (int i = 0; ret; ++i)
+					//{
+					//	std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
+					//	ret = walk_plan(i, &param);
+					//	// 弧度 中间为 0    input[0]                        0.2弧度
+					//	// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
+					//	// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
+					//	sendToBoard(input);
+					//}
+					std::cout << "back finish" << std::endl;
+				}
+				break;
+			}
+			case LEFT:
+			{
+				if (state == PREPAIRD || state == RUNNING)
+				{
+					//Prepair();
+
+					//param.d = -200;
+					//param.h = 90;
+					//param.alpha = 3.1415926 * 5 / 6;
+					//param.beta = 0.0;
+					////	 param.total_count = 2000;  //1ms
+					//param.total_count = 100;   //10ms
+					//param.n = 5;
+					//param.begin_pee_wrt_ground = xyz;
+					//param.begin_pm_wrt_ground = body;
+					//param.mot_pos = input;
+
+					//for (int j = 0; j < 18; j++)
+					//{
+					//	MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
+					//}
+
+					//std::chrono::high_resolution_clock c;
+					//auto begin_time = c.now();
+					//for (int i = 0; ret; ++i)
+					//{
+					//	std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
+					//	ret = walk_plan(i, &param);
+					//	// 弧度 中间为 0    input[0]                        0.2弧度
+					//	// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
+					//	// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
+					//	sendToBoard(input);
+					//}
+					std::cout << "left finish" << std::endl;
+				}
+				break;
+			}
+			case RIGHT:
+			{
+				if (state == PREPAIRD || state == RUNNING)
+				{
+					//Prepair();
+
+					//param.d = 200;
+					//param.h = 90;
+					//param.alpha = 3.1415926 * 5 / 6;
+					//param.beta = 0.0;
+					////	 param.total_count = 2000;  //1ms
+					//param.total_count = 100;   //10ms
+					//param.n = 5;
+					//param.begin_pee_wrt_ground = xyz;
+					//param.begin_pm_wrt_ground = body;
+					//param.mot_pos = input;
+
+					//for (int j = 0; j < 18; j++)
+					//{
+					//	MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
+					//}
+
+					//std::chrono::high_resolution_clock c;
+					//auto begin_time = c.now();
+					//for (int i = 0; ret; ++i)
+					//{
+					//	std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
+
+					//	ret = walk_plan(i, &param);
+					//	// 弧度 中间为 0    input[0]                        0.2弧度
+					//	// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
+					//	// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
+					//	sendToBoard(input);
+					//}
+					std::cout << "right finish" << std::endl;
+				}
+				break;
+			}
+		}
+		return std::make_tuple<int, std::string>(0, "successful");
+	}
 	
-	if (cmd == "home")
-	{
-		unsigned short Runcount[AxisMax] = { 1 };
-		unsigned short Reason[AxisMax] = { 1 };
-		unsigned short Reason1[AxisMax] = { 0 };
-
-		for (int i = 0; i < AxisMax; i++)			//设置18轴触发
-		{
-			MCF_Get_Home_Net(i, &Home_State, 0);
-			if (Home_State == 1)
-			{
-				MCF_Set_Home_Trigger_Net(i, Trigger_Low_IMD, 0);
-				MCF_JOG_Net(i, 10000, 10000000, 0);//往正找原点
-				Runcount[i] = 1;
-			}
-		}
-		bool Home_Number = true;
-		while (Home_Number)
-		{
-			for (int i = 0; i < AxisMax; i++)
-			{
-				if (Runcount[i] == 1)
-				{
-					MCF_Get_Axis_State_Net(i, &Reason[i], 0);
-					if (Reason[i] == IMD_STOP_AT_Home)
-					{
-
-						MCF_Clear_Axis_State_Net(i, 0);
-
-						MCF_Set_Home_Trigger_Net(i, Trigger_Close, 0);
-						MCF_Set_Axis_Profile_Net(i, 0, 20000, 1000000, 10000000, 0, Profile_S, 0);
-						if (i < Axis_13)
-						{
-							MCF_Uniaxial_Net(i, -10000, Position_Opposite, 0);//机械臂往外升出10000,脉冲	
-//						    MCF_Uniaxial_Net(i, -5000, Position_Opposite, 0);//机械臂往外升出10000,脉冲	
-						}
-						else
-						{
-							MCF_Uniaxial_Net(i, -50000, Position_Opposite, 0);//机械臂往外升出10000,脉冲	
-//						    MCF_Uniaxial_Net(i, -25000, Position_Opposite, 0);//机械臂往外升出10000,脉冲
-						}
-
-						Runcount[i] = 0;
-					}
-					else if (Reason[i] == ERR_Axis_Busy)
-					{
-					}
-					else
-					{
-
-					}
-				}
-				else if (Runcount[i] == 0)
-				{
-					MCF_Get_Axis_State_Net(i, &Reason1[i], 0);
-					if (Reason1[i] == 0)
-					{
-						Runcount[i] = 2;
-					}
-					else
-					{
-						Runcount[i] = 0;
-					}
-				}
-
-				if (std::all_of(Runcount, Runcount + 18, [](auto v) {return v == 2; }))
-				{
-					for (i = 0; i < AxisMax; i++)
-					{
-						MCF_Set_Position_Net(i, 0, 0);				//设置当前位置为0
-						MCF_Set_Encoder_Net(i, 0, 0);			//设置当前编码器为0 
-																	//清零
-					}
-
-					Home_Number = false;
-				}
-			}
-		}
-
-		std::cout << "home finished" << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-	}
-	else if (cmd == "prepair")
-	{
-		Prepair();
-		std::cout << "prepair finish" << std::endl;
-	}
-	else if (cmd == "forward")
-	{
-		Prepair();
-
-		auto n = 10;
-
-		param.d = 400; //步距 MM
-		param.h = 90;  //腿高度 MM
-		param.alpha = 3.1415926 / 3; //方向
-		param.beta = 0.0;
-		//	 param.total_count = 2000;  //1ms
-		param.total_count = 50;   //10ms
-		param.n = n;
-		param.begin_pee_wrt_ground = xyz;
-		param.begin_pm_wrt_ground = body;
-		param.mot_pos = input;
-
-		for (int j = 0; j < 18; j++)
-		{
-			MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
-		}
-
-		std::chrono::high_resolution_clock c;
-		auto begin_time = c.now();
-		for (int i = 0; ret; ++i)
-		{
-			std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
-			ret = walk_plan(i, &param);
-			// 弧度 中间为 0    input[0]                        0.2弧度
-			// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
-			// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
-
-			sendToBoard(input);
-		}
-		std::cout << "forward" << std::endl;
-
-	}
-	else if (cmd == "left")
-	{
-		Prepair();
-
-		param.d = -200;
-		param.h = 90;
-		param.alpha = 3.1415926 * 5 / 6;
-		param.beta = 0.0;
-		//	 param.total_count = 2000;  //1ms
-		param.total_count = 100;   //10ms
-		param.n = 5;
-		param.begin_pee_wrt_ground = xyz;
-		param.begin_pm_wrt_ground = body;
-		param.mot_pos = input;
-
-		for (int j = 0; j < 18; j++)
-		{
-			MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
-		}
-
-		std::chrono::high_resolution_clock c;
-		auto begin_time = c.now();
-		for (int i = 0; ret; ++i)
-		{
-			std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
-			ret = walk_plan(i, &param);
-			// 弧度 中间为 0    input[0]                        0.2弧度
-			// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
-			// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
-			sendToBoard(input);
-		}
-		std::cout << "left" << std::endl;
-	}
-	else if (cmd == "back")
-	{
-		Prepair();
-
-		param.d = -400; //步距 MM
-		param.h = 90;  //腿高度 MM
-		param.alpha = 3.1415926 / 3; //方向
-		param.beta = 0.0;
-		//	 param.total_count = 2000;  //1ms
-		param.total_count = 100;   //10ms
-		param.n = 5;
-		param.begin_pee_wrt_ground = xyz;
-		param.begin_pm_wrt_ground = body;
-		param.mot_pos = input;
-
-		for (int j = 0; j < 18; j++)
-		{
-			MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
-		}
-
-		std::chrono::high_resolution_clock c;
-		auto begin_time = c.now();
-		for (int i = 0; ret; ++i)
-		{
-			std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
-			ret = walk_plan(i, &param);
-			// 弧度 中间为 0    input[0]                        0.2弧度
-			// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
-			// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
-			sendToBoard(input);
-		}
-		std::cout << "back" << std::endl;
-	}
-	else if (cmd == "right")
-	{
-		Prepair();
-
-		param.d = 200;
-		param.h = 90;
-		param.alpha = 3.1415926 * 5 / 6;
-		param.beta = 0.0;
-		//	 param.total_count = 2000;  //1ms
-		param.total_count = 100;   //10ms
-		param.n = 5;
-		param.begin_pee_wrt_ground = xyz;
-		param.begin_pm_wrt_ground = body;
-		param.mot_pos = input;
-
-		for (int j = 0; j < 18; j++)
-		{
-			MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
-		}
-
-		std::chrono::high_resolution_clock c;
-		auto begin_time = c.now();
-		for (int i = 0; ret; ++i)
-		{
-			std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
-
-			ret = walk_plan(i, &param);
-			// 弧度 中间为 0    input[0]                        0.2弧度
-			// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
-			// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
-			sendToBoard(input);
-		}
-		std::cout << "right" << std::endl;
-	}
-	else if (cmd == "set_io")
-	{
-		// TODO: 在此添加控件通知处理程序代码
-		for (;;)
-		{
-			MCF_Set_Output_Net(0);
-			std::cout << "light" << std::endl;
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-			MCF_Set_Output_Net(0xff);
-			std::cout << "light" << std::endl;
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-		}
-
-
-	}
 }
+
+auto current_state(string& cmd) ->int
+{
+	std::map<std::string, int> int2str=
+	{
+		std::make_pair(std::string("home"),    HOME),
+		std::make_pair(std::string("prepair"), PREPAIR),
+		std::make_pair(std::string("forward"), FORWARD),
+		std::make_pair(std::string("back"),    BACK),
+		std::make_pair(std::string("left"),    LEFT),
+		std::make_pair(std::string("right"),   RIGHT),
+	};
+	command = int2str.at(cmd);
+	return table_state[state][command];
+}
+
 
 void main()
 {
@@ -471,25 +535,18 @@ void main()
 
 			auto str = msg.toString();
 
+			//收到网页命令后
+			try
+			{
+				state = current_state(str) < 0 ? state : current_state(str);
+				auto [code, ret_str] = execute(command, state);
+				send_code_and_msg(code, ret_str);
+			}
+			catch (std::exception&e)
+			{
+				send_code_and_msg(-1, e.what());
+			}
 
-
-
-
-
-
-			execute(str);
-
-
-
-
-
-
-
-
-
-
-
-			send_code_and_msg(0, "successful");
 			return 0;
 		});
 	socket.setOnReceivedConnection([](aris::core::Socket* sock, const char* ip, int port)->int
@@ -501,28 +558,28 @@ void main()
 			return 0;
 		});
 	socket.setOnLoseConnection([](aris::core::Socket* socket)->int
+	{
+	std::cout << "socket lose connection" << std::endl;
+		LOG_INFO << "socket lose connection" << std::endl;
+		for (;;)
 		{
-			std::cout << "socket lose connection" << std::endl;
-			LOG_INFO << "socket lose connection" << std::endl;
-			for (;;)
+			try
 			{
-				try
-				{
-					socket->startServer(socket->port());
-					break;
-				}
-				catch (std::runtime_error & e)
-				{
-					std::cout << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
-					LOG_ERROR << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
-					std::this_thread::sleep_for(std::chrono::seconds(1));
-				}
+				socket->startServer(socket->port());
+				break;
 			}
-			std::cout << "socket restart successful" << std::endl;
-			LOG_INFO << "socket restart successful" << std::endl;
+			catch (std::runtime_error & e)
+			{
+				std::cout << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
+				LOG_ERROR << e.what() << std::endl << "will try to restart server socket in 1s" << std::endl;
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+			}
+		}
+		std::cout << "socket restart successful" << std::endl;
+		LOG_INFO << "socket restart successful" << std::endl;
 
-			return 0;
-		});
+		return 0;
+	});
 
 	socket.startServer();
 

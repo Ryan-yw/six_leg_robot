@@ -16,7 +16,7 @@ endif(WIN32)
 include_directories(${aris_INCLUDE_DIRS})
 
 add_executable(test src/main.cpp src/kinematic.h src/kinematic.cpp src/plan.h src/plan.cpp src/json.hpp)
-target_link_libraries(test ${aris_LIBRARIES} C:/Users/DELL1/Desktop/self_test/lib/MCDLL_NET.lib)
+target_link_libraries(test ${aris_LIBRARIES} C:/Users/DELL1/Desktop/self_/lib/MCDLL_NET.lib)
 
 
 
