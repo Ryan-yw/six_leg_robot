@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <string>
 
 #include <aris.hpp>
 #include "json.hpp"
@@ -48,6 +49,8 @@ double input[18];
 double input_c[18];
 WalkParam param;
 int ret = 1;
+std::string str_command;
+int step = 0;
 
 auto sendToBoard(const double *input)
 {
@@ -217,8 +220,10 @@ int table_state[6][6] =       //状态表
 auto execute(int command,int state)->std::tuple<int, std::string>
 {
 	static unsigned short Home_State = 0;
+	int n = step;
 	switch (command)
 	{
+		
 		case HOME:
 		{
 			if (state == HOMED || state == PREPAIRD || state == HOMEFINISH)
@@ -493,11 +498,30 @@ auto current_state(string& cmd) ->int
 }
 
 
+auto StringParser(std::string& cmd )->std::string
+{
+	std::string str1;
+	int len = cmd.size();  //cmd为网页发送字符串,计算字符长度
+	if (len < 10)
+	{
+		str1 = cmd;  //str_command为抽取命令字符串
+		step = 0;
+	}
+	else
+	{
+		str1.assign(cmd, 0, len - 6);  //str_command为抽取命令字符串
+		step = cmd[len - 2];     //a为步数
+	}
+	return  str1;
+}
+
+
 void main()
 {
 
 	//1. 打开卡
 	state = table_state[state][command];
+	
 	unsigned short Station_Number[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };//设置站点顺序
 	unsigned short Station_Type[8] = { 4 };	//设置站号类型
 	MCF_Open_Net(1, &Station_Number[0], &Station_Type[0]);		//打开运动控制卡
@@ -534,19 +558,24 @@ void main()
 			auto msg_data = std::string_view(msg.data(), msg.size());
 			if (msg_data == "get") return 0;
 
-			auto str = msg.toString();
+			std::string  str = msg.toString();
+			
+			
+
+			
 
 			//收到网页命令后
+			str_command = StringParser(str);   //字符串解析，得到命令和步数
 			try
 			{
-				if (current_state(str) == -1)
+				if (current_state(str_command) == -1)
 				{
 					state = state;
-					send_code_and_msg(-1, "state fail");
+					send_code_and_msg(-1, "fail");
  				}
 				else
 				{
-					state = current_state(str);
+					state = current_state(str_command);
 				}
 				auto [code, ret_str] = execute(command, state);
 				send_code_and_msg(code, ret_str);
