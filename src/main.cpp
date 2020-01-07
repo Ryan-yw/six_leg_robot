@@ -226,7 +226,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 		
 		case HOME:
 		{
-			if (state == HOMED || state == PREPAIRD || state == HOMEFINISH)
+			if (state == HOMED || state == HOMEFINISH)
 			{
 				//		unsigned short Runcount[AxisMax] = { 1 };
 				//		unsigned short Reason[AxisMax] = { 1 };
@@ -498,11 +498,12 @@ auto current_state(string& cmd) ->int
 }
 
 
-auto StringParser(std::string& cmd )->std::string
+auto StringParser(std::string& cmd )->std::string 
 {
 	std::string str1;
-	int len = cmd.size();  //cmd为网页发送字符串,计算字符长度
-	if (len < 10)
+
+	int len = cmd.size();  //cmd为网页发送字符串,计算字符长度)
+	if (len < 8)
 	{
 		str1 = cmd;  //str_command为抽取命令字符串
 		step = 0;
@@ -510,9 +511,11 @@ auto StringParser(std::string& cmd )->std::string
 	else
 	{
 		str1.assign(cmd, 0, len - 6);  //str_command为抽取命令字符串
-		step = cmd[len - 2];     //a为步数
+		step = cmd[len-1];     //a为步数
+		step = step - 48;
+
 	}
-	return  str1;
+	return str1;
 }
 
 
@@ -531,73 +534,74 @@ void main()
 	aris::core::Socket socket("sock", "", "5866", aris::core::Socket::WEB);
 
 	socket.setOnReceivedMsg([](aris::core::Socket* socket, aris::core::Msg& msg)->int
+	{
+		auto send_ret = [socket](aris::core::Msg& ret_msg)->void
 		{
-			auto send_ret = [socket](aris::core::Msg& ret_msg)->void
-			{
-				try
-				{
-					socket->sendMsg(ret_msg);
-				}
-				catch (std::exception & e)
-				{
-					std::cout << e.what() << std::endl;
-					LOG_ERROR << e.what() << std::endl;
-				}
-			};
-			auto send_code_and_msg = [send_ret, msg](int code, const std::string& ret_msg_str)
-			{
-				nlohmann::json js;
-				js["return_code"] = code;
-				js["return_message"] = ret_msg_str;
-
-				aris::core::Msg ret_msg = msg;
-				ret_msg.copy(js.dump(2));
-				send_ret(ret_msg);
-			};
-
-			auto msg_data = std::string_view(msg.data(), msg.size());
-			if (msg_data == "get") return 0;
-
-			std::string  str = msg.toString();
-			
-			
-
-			
-
-			//收到网页命令后
-			str_command = StringParser(str);   //字符串解析，得到命令和步数
 			try
 			{
-				if (current_state(str_command) == -1)
-				{
-					state = state;
-					send_code_and_msg(-1, "fail");
- 				}
-				else
-				{
-					state = current_state(str_command);
-				}
-				auto [code, ret_str] = execute(command, state);
-				send_code_and_msg(code, ret_str);
+				socket->sendMsg(ret_msg);
 			}
-			catch (std::exception&e)
+			catch (std::exception & e)
 			{
-				send_code_and_msg(-1, e.what());
+				std::cout << e.what() << std::endl;
+				LOG_ERROR << e.what() << std::endl;
 			}
-
-			return 0;
-		});
-	socket.setOnReceivedConnection([](aris::core::Socket* sock, const char* ip, int port)->int
+		};
+		auto send_code_and_msg = [send_ret, msg](int code, const std::string& ret_msg_str)
 		{
-			std::cout << "socket receive connection" << std::endl;
-			LOG_INFO << "socket receive connection:\n"
-				<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "  ip:" << ip << "\n"
-				<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "port:" << port << std::endl;
-			return 0;
-		});
+			nlohmann::json js;
+			js["return_code"] = code;
+			js["return_message"] = ret_msg_str;
+
+			aris::core::Msg ret_msg = msg;
+			ret_msg.copy(js.dump(2));
+			send_ret(ret_msg);
+		};
+
+		auto msg_data = std::string_view(msg.data(), msg.size());
+		if (msg_data == "get") return 0;
+
+		std::string  str = msg.toString();
+			
+			
+
+			
+
+		//收到网页命令后
+		str_command = StringParser(str);   //字符串解析，得到命令和步数
+
+		try
+		{
+			if (current_state(str_command) == -1)    //根据命令判断下一步状态，若状态正常则更新状态，否则继续为上一步状态并反馈错误信息
+			{
+				state = state;
+				send_code_and_msg(-1, "fail");
+ 			}
+			else
+			{
+				state = current_state(str_command);
+			}
+			auto [code, ret_str] = execute(command, state);    //执行状态更新后的命令
+			send_code_and_msg(code, ret_str);               
+		}
+		catch (std::exception&e)
+		{
+			send_code_and_msg(-1, e.what());
+		}
+
+		return 0;
+	});
+	socket.setOnReceivedConnection([](aris::core::Socket* sock, const char* ip, int port)->int
+	{
+		std::cout << "socket receive connection" << std::endl;
+		LOG_INFO << "socket receive connection:\n"
+			<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "  ip:" << ip << "\n"
+			<< std::setw(aris::core::LOG_SPACE_WIDTH) << "|" << "port:" << port << std::endl;
+		return 0;
+	});
 	socket.setOnLoseConnection([](aris::core::Socket* socket)->int
 	{
-	std::cout << "socket lose connection" << std::endl;
+		std::cout << "socket lose connection" << std::endl;
 		LOG_INFO << "socket lose connection" << std::endl;
 		for (;;)
 		{
