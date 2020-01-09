@@ -204,17 +204,19 @@ enum  //命令常量
 	FORWARD = 2,   //前进
 	BACK = 3,      //后退
 	LEFT = 4,      //左移
-	RIGHT = 5      //右移
+	RIGHT = 5,      //右移
+	TURNL = 6,      //左旋
+	TURNR = 7		//右旋
 };
-int table_state[6][6] =       //状态表
+int table_state[6][8] =       //状态表
 {
-   //       home    prepair  forward    back      lest     right
-	{      HOMED,        -1,      -1,      -1,      -1,      -1},		//init0
-	{ HOMEFINISH,        -1,      -1,      -1,      -1,      -1},		//homed1
-	{ HOMEFINISH,  PREPAIRD,      -1,      -1,      -1,      -1},		//homefinish2
-	{         -1,  PREPAIRD, RUNNING, RUNNING, RUNNING, RUNNING},		//prepaird3
-	{         -1,        -1, RUNNING, RUNNING, RUNNING, RUNNING},		//running4
-	{       ERRO,      ERRO,    ERRO,    ERRO,    ERRO,    ERRO}		//error5
+   //       home    prepair  forward    back      lest     right   turnl    turnr
+	{      HOMED,        -1,      -1,      -1,      -1,      -1,      -1,      -1},		//init0
+	{ HOMEFINISH,        -1,      -1,      -1,      -1,      -1,      -1,      -1},		//homed1
+	{ HOMEFINISH,  PREPAIRD,      -1,      -1,      -1,      -1,      -1,      -1},		//homefinish2
+	{         -1,  PREPAIRD, RUNNING, RUNNING, RUNNING, RUNNING, RUNNING, RUNNING},		//prepaird3
+	{         -1,        -1, RUNNING, RUNNING, RUNNING, RUNNING, RUNNING, RUNNING},		//running4
+	{       ERRO,      ERRO,    ERRO,    ERRO,    ERRO,    ERRO,    ERRO, ERRO}		//error5
 };
 
 auto execute(int command,int state)->std::tuple<int, std::string>
@@ -317,7 +319,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 		{
 			if (state == HOMEFINISH || state == PREPAIRD)
 			{
-				//Prepair();
+				Prepair();
 				std::cout << "prepair finish" << std::endl;
 			}
 			return std::make_tuple<int, std::string>(0, "successful");
@@ -374,7 +376,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				param.alpha = 3.1415926 / 3; //方向
 				param.beta = 0.0;
 				//	 param.total_count = 2000;  //1ms
-				param.total_count = 100;   //10ms
+				param.total_count = 50;   //10ms
 				param.n = n;
 				param.begin_pee_wrt_ground = xyz;
 				param.begin_pm_wrt_ground = body;
@@ -407,12 +409,12 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 			{
 				Prepair();
 
-				param.d = -200;
+				param.d = 200;
 				param.h = 90;
 				param.alpha = 3.1415926 * 5 / 6;
 				param.beta = 0.0;
 				//	 param.total_count = 2000;  //1ms
-				param.total_count = 100;   //10ms
+				param.total_count = 50;   //10ms
 				param.n = n;
 				param.begin_pee_wrt_ground = xyz;
 				param.begin_pm_wrt_ground = body;
@@ -428,12 +430,14 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				for (int i = 0; ret; ++i)
 				{
 					std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
+
 					ret = walk_plan(i, &param);
 					// 弧度 中间为 0    input[0]                        0.2弧度
 					// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
 					// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
 					sendToBoard(input);
 				}
+				
 				std::cout << "left finish" << std::endl;
 			}
 			return std::make_tuple<int, std::string>(0, "successful");
@@ -445,12 +449,12 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 			{
 				Prepair();
 
-				param.d = 200;
+				param.d = -200;
 				param.h = 90;
 				param.alpha = 3.1415926 * 5 / 6;
 				param.beta = 0.0;
 				//	 param.total_count = 2000;  //1ms
-				param.total_count = 100;   //10ms
+				param.total_count = 50;   //10ms
 				param.n = n;
 				param.begin_pee_wrt_ground = xyz;
 				param.begin_pm_wrt_ground = body;
@@ -466,7 +470,6 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				for (int i = 0; ret; ++i)
 				{
 					std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
-
 					ret = walk_plan(i, &param);
 					// 弧度 中间为 0    input[0]                        0.2弧度
 					// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
@@ -474,6 +477,84 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 					sendToBoard(input);
 				}
 				std::cout << "right finish" << std::endl;
+			}
+			return std::make_tuple<int, std::string>(0, "successful");
+			break;
+		}
+		case TURNL:
+		{
+			if (state == PREPAIRD || state == RUNNING)
+			{
+				Prepair();
+
+				param.d = 0;
+				param.h = 90;
+				param.alpha = 0.0;
+				param.beta = -0.5;
+				//	 param.total_count = 2000;  //1ms
+				param.total_count = 50;   //10ms
+				param.n = n;
+				param.begin_pee_wrt_ground = xyz;
+				param.begin_pm_wrt_ground = body;
+				param.mot_pos = input;
+
+				for (int j = 0; j < 18; j++)
+				{
+					MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
+				}
+
+				std::chrono::high_resolution_clock c;
+				auto begin_time = c.now();
+				for (int i = 0; ret; ++i)
+				{
+					std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
+					ret = walk_plan(i, &param);
+					// 弧度 中间为 0    input[0]                        0.2弧度
+					// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
+					// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
+					sendToBoard(input);
+				}
+				std::cout << "turn left finish" << std::endl;
+			}
+			return std::make_tuple<int, std::string>(0, "successful");
+			break;
+		}
+		case TURNR:
+		{
+			if (state == PREPAIRD || state == RUNNING)
+			{
+				Prepair();
+
+				param.d = 0;
+				param.h = 90;
+				param.alpha = 0.0;
+				param.beta = 0.5;
+				//	 param.total_count = 2000;  //1ms
+				param.total_count = 50;   //10ms
+				param.n = n;
+				param.begin_pee_wrt_ground = xyz;
+				param.begin_pm_wrt_ground = body;
+				param.mot_pos = input;
+
+
+
+				for (int j = 0; j < 18; j++)
+				{
+					MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
+				}
+
+				std::chrono::high_resolution_clock c;
+				auto begin_time = c.now();
+				for (int i = 0; ret; ++i)
+				{
+					std::this_thread::sleep_until(begin_time + i * std::chrono::milliseconds(5));
+					ret = walk_plan(i, &param);
+					// 弧度 中间为 0    input[0]                        0.2弧度
+					// X轴 往外为正数据 input[1]  长方向  单位 ：毫米   0 - 30mm 
+					// Y轴 往下为正数据 input[2]  长方向  单位 ：毫米   0 - 30mm
+					sendToBoard(input);
+				}
+				std::cout << "turn right finish" << std::endl;
 			}
 			return std::make_tuple<int, std::string>(0, "successful");
 			break;
@@ -491,6 +572,8 @@ auto current_state(string& cmd) ->int
 		std::make_pair(std::string("back"),    BACK),
 		std::make_pair(std::string("left"),    LEFT),
 		std::make_pair(std::string("right"),   RIGHT),
+		std::make_pair(std::string("turnl"),   TURNL),
+		std::make_pair(std::string("turnr"),   TURNR),
 	};
 	command = int2str.at(cmd);
 	return table_state[state][command];
