@@ -277,10 +277,6 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 							else if (Reason[i] == ERR_Axis_Busy)
 							{
 							}
-							else
-							{
-
-							}
 						}
 						else if (Runcount[i] == 0)
 						{
@@ -312,7 +308,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				std::cout << "home finished" << std::endl;
 				std::this_thread::sleep_for(std::chrono::seconds(1));
 			}
-			return std::make_tuple<int, std::string>(0, "successful");
+			return std::make_tuple<int, std::string>(0, "home finished");
 			break;
 		}
 		case PREPAIR:
@@ -322,7 +318,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				Prepair();
 				std::cout << "prepair finish" << std::endl;
 			}
-			return std::make_tuple<int, std::string>(0, "successful");
+			return std::make_tuple<int, std::string>(0, "prepair finish");
 			break;
 		}
 		case FORWARD:
@@ -347,6 +343,9 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				{
 					MCF_Set_Axis_Profile_Net(j, 0, 100000, 10000000, 600000000, 0, 0, 0);
 				}
+				//MCF_Set_Axis_Profile_Net(3, 0, 100000, 10000000, 600000000, 0, 0, 0);
+				//MCF_Set_Axis_Profile_Net(4, 0, 100000, 10000000, 600000000, 0, 0, 0);
+				//MCF_Set_Axis_Profile_Net(14, 0, 100000, 10000000, 600000000, 0, 0, 0);
 
 				std::chrono::high_resolution_clock c;
 				auto begin_time = c.now();
@@ -362,7 +361,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				}
 				std::cout << "forward finish" << std::endl;
 			}
-			return std::make_tuple<int, std::string>(0, "successful");
+			return std::make_tuple<int, std::string>(0, "forward finish");
 			break;
 		}
 		case BACK:
@@ -400,7 +399,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				}
 				std::cout << "back finish" << std::endl;
 			}
-			return std::make_tuple<int, std::string>(0, "successful");
+			return std::make_tuple<int, std::string>(0, "back finish");
 			break;
 		}
 		case LEFT:
@@ -440,7 +439,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				
 				std::cout << "left finish" << std::endl;
 			}
-			return std::make_tuple<int, std::string>(0, "successful");
+			return std::make_tuple<int, std::string>(0, "left finish");
 			break;
 		}
 		case RIGHT:
@@ -478,7 +477,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				}
 				std::cout << "right finish" << std::endl;
 			}
-			return std::make_tuple<int, std::string>(0, "successful");
+			return std::make_tuple<int, std::string>(0, "right finish");
 			break;
 		}
 		case TURNL:
@@ -516,7 +515,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				}
 				std::cout << "turn left finish" << std::endl;
 			}
-			return std::make_tuple<int, std::string>(0, "successful");
+			return std::make_tuple<int, std::string>(0, "turn left finish");
 			break;
 		}
 		case TURNR:
@@ -556,7 +555,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 				}
 				std::cout << "turn right finish" << std::endl;
 			}
-			return std::make_tuple<int, std::string>(0, "successful");
+			return std::make_tuple<int, std::string>(0, "turn right finish");
 			break;
 		}
 	}
