@@ -561,7 +561,7 @@ auto execute(int command,int state)->std::tuple<int, std::string>
 	}
 }
 
-auto current_state(string& cmd) ->int
+auto current_state(std::string& cmd) ->int
 {
 	std::map<std::string, int> int2str=
 	{
